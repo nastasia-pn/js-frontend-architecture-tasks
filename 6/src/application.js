@@ -41,5 +41,91 @@ const validate = (fields) => {
 };
 
 // BEGIN
+export default () => {
+  const container = document.querySelector('[data-container="sign-up"]');
+  const form = container.querySelector('[data-form="sign-up"]');
+  const submitBtn = form.querySelector('input[type="submit"]');
+  const fields = {
+    name: form.querySelector('input[name="name"]'),
+    email: form.querySelector('input[name="email"]'),
+    password: form.querySelector('input[name="password"]'),
+    passwordConfirmation: form.querySelector('input[name="passwordConfirmation"]'),
+  };
+
+  const state = {
+    fields: {
+      name: '',
+      email: '',
+      password: '',
+      passwordConfirmation: '',
+    },
+    errors: {},
+    isValid: false,
+    isSending: false,
+  };
+
+  const render = () => {
+    Object.entries(fields).forEach(([key, input]) => {
+      const error = state.errors[key];
+      if (error) {
+        input.classList.add('is-invalid');
+        let feedback = input.nextElementSibling;
+        if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+          feedback = document.createElement('div');
+          feedback.className = 'invalid-feedback';
+          input.parentNode.insertBefore(feedback, input.nextSibling);
+        }
+        feedback.textContent = error.message;
+      } else {
+        input.classList.remove('is-invalid');
+        let feedback = input.nextElementSibling;
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+          feedback.remove();
+        }
+      }
+    });
+
+    if (state.isValid && !state.isSending) {
+      submitBtn.disabled = false;
+    } else {
+      submitBtn.disabled = true;
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    state.fields[name] = value;
+    const errors = validate(state.fields);
+    state.errors = errors;
+    state.isValid = isEmpty(errors);
+    render();
+  };
+
+  Object.values(fields).forEach((input) => {
+    input.addEventListener('input', handleChange);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errors = validate(state.fields);
+    state.errors = errors;
+    state.isValid = isEmpty(errors);
+    render();
+    if (!state.isValid) return;
+
+    state.isSending = true;
+    render();
+
+    try {
+      await axios.post(routes.usersPath(), state.fields);
+      container.innerHTML = 'User Created!';
+    } catch (err) {
+      state.isSending = false;
+      render();
+    }
+  });
+
+  render();
+};
 
 // END
